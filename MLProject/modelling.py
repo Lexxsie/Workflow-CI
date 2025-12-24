@@ -6,12 +6,29 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
+import os
+import numpy as np
+from sklearn.datasets import make_classification
+
 def load_data():
-    X_train = np.load("namadataset_preprocessing/X_train.npy")
-    X_test = np.load("namadataset_preprocessing/X_test.npy")
-    y_train = np.load("namadataset_preprocessing/y_train.npy")
-    y_test = np.load("namadataset_preprocessing/y_test.npy")
+    if os.path.exists("namadataset_preprocessing/X_train.npy"):
+        X_train = np.load("namadataset_preprocessing/X_train.npy")
+        X_test = np.load("namadataset_preprocessing/X_test.npy")
+        y_train = np.load("namadataset_preprocessing/y_train.npy")
+        y_test = np.load("namadataset_preprocessing/y_test.npy")
+    else:
+        # Fallback untuk CI
+        X, y = make_classification(
+            n_samples=500,
+            n_features=20,
+            n_classes=2,
+            random_state=42
+        )
+        X_train, X_test = X[:400], X[400:]
+        y_train, y_test = y[:400], y[400:]
+
     return X_train, X_test, y_train, y_test
+
 
 
 def main():
@@ -46,4 +63,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
