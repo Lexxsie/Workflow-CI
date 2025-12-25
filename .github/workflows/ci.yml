@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run actions/checkout@v3
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python 3.12.7
@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.12.7"
 
-      - name: Check Env
+      - name: Check environment
         run: |
           python --version
           pip --version
@@ -29,10 +29,10 @@ jobs:
           pip install --upgrade pip
           pip install mlflow pandas scikit-learn gdown
 
-      - name: Run mlflow project (NO CONDA)
+      - name: Run MLflow Project (CI-safe)
         run: |
-          mlflow run MLProject --no-conda
+          mlflow run MLProject --env-manager=local
 
-      - name: Get latest MLflow run_id
+      - name: List MLflow runs
         run: |
-          ls -lt mlruns/*/* | head -n 20
+          ls -R mlruns || echo "mlruns not found"
