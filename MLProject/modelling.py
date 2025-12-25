@@ -14,29 +14,19 @@ from sklearn.metrics import (
 )
 
 # ======================================================
-# CONFIG
+# CONFIG DATASET
 # ======================================================
-EXPERIMENT_NAME = "Hotel_Booking_Basic_Model"
-
 DATA_DIR = "data"
 DATA_FILE = "hotel_train.csv"
 
-# ✅ DIRECT DOWNLOAD LINK (WAJIB FORMAT INI)
+# DIRECT DOWNLOAD LINK (WAJIB format ini)
 DATA_URL = (
     "https://drive.google.com/uc?export=download&id="
     "1mFiv2KO_NQKSNcGfHilTfgkNk1Q72aDu"
 )
 
 # ======================================================
-# MLflow Setup (CI-SAFE)
-# ======================================================
-# ❗ JANGAN set tracking_uri ke localhost
-# CI akan otomatis pakai file-based backend (./mlruns)
-mlflow.set_experiment(EXPERIMENT_NAME)
-
-
-# ======================================================
-# Download Dataset (CI & Local Safe)
+# DOWNLOAD DATASET (CI & LOCAL SAFE)
 # ======================================================
 def download_dataset():
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -53,7 +43,7 @@ def download_dataset():
 
 
 # ======================================================
-# Load & Split Data
+# LOAD & SPLIT DATA
 # ======================================================
 def load_data():
     data_path = download_dataset()
@@ -79,15 +69,15 @@ def load_data():
 
 
 # ======================================================
-# Train Model
+# TRAIN MODEL
 # ======================================================
 def train():
     X_train, X_test, y_train, y_test = load_data()
 
+    # ❗ PENTING
+    # JANGAN set_experiment di MLflow Project
+    # MLflow Project yang mengatur run & experiment
     with mlflow.start_run():
-        # ------------------------------
-        # Model
-        # ------------------------------
         model = LogisticRegression(
             max_iter=1000,
             random_state=42,
@@ -96,9 +86,6 @@ def train():
 
         model.fit(X_train, y_train)
 
-        # ------------------------------
-        # Evaluation
-        # ------------------------------
         y_pred = model.predict(X_test)
 
         acc = accuracy_score(y_test, y_pred)
@@ -107,7 +94,7 @@ def train():
         f1 = f1_score(y_test, y_pred)
 
         # ------------------------------
-        # Manual MLflow Logging
+        # MANUAL LOGGING (SKILLED READY)
         # ------------------------------
         mlflow.log_param("model_type", "LogisticRegression")
         mlflow.log_param("max_iter", 1000)
@@ -122,10 +109,7 @@ def train():
             artifact_path="model"
         )
 
-        # ------------------------------
-        # Output (CI Friendly)
-        # ------------------------------
-        print("Training finished successfully")
+        print("Training completed successfully")
         print(f"Accuracy : {acc:.4f}")
         print(f"Precision: {prec:.4f}")
         print(f"Recall   : {rec:.4f}")
@@ -133,7 +117,7 @@ def train():
 
 
 # ======================================================
-# Entry Point
+# ENTRY POINT
 # ======================================================
 if __name__ == "__main__":
     train()
