@@ -41,27 +41,16 @@ def load_data():
     )
 
 # =====================================================
-# TRAINING (MLFLOW PROJECT SAFE)
+# TRAINING - MLflow run CLI will handle the run
 # =====================================================
 def train():
-    # Set experiment
+    # Set experiment (mlflow run will create the run automatically)
     mlflow.set_experiment(EXPERIMENT_NAME)
     
-    # Check jika ada run aktif dari CLI
-    active_run = mlflow.active_run()
-    
-    if active_run is None:
-        # Tidak ada run aktif, buat baru
-        with mlflow.start_run():
-            _train_model()
-    else:
-        # Sudah ada run aktif dari CLI, gunakan itu
-        _train_model()
-
-def _train_model():
-    """Helper function untuk training logic"""
+    print("Loading data...")
     X_train, X_test, y_train, y_test = load_data()
     
+    print("Training model...")
     model = RandomForestClassifier(
         n_estimators=100,
         random_state=42,
@@ -69,19 +58,23 @@ def _train_model():
     )
     model.fit(X_train, y_train)
     
+    print("Evaluating model...")
     preds = model.predict(X_test)
     acc = accuracy_score(y_test, preds)
     
-    # Log parameters dan metrics
+    print("Logging to MLflow...")
+    # Log directly - no mlflow.start_run() needed
     mlflow.log_param("model", "RandomForest")
     mlflow.log_param("n_estimators", 100)
+    mlflow.log_param("random_state", 42)
     mlflow.log_metric("accuracy", acc)
+    
     mlflow.sklearn.log_model(
         model,
         artifact_path="model"
     )
     
-    print(f"Training finished | Accuracy = {acc:.4f}")
+    print(f"✅ Training finished | Accuracy = {acc:.4f}")
 
 # =====================================================
 # MAIN
