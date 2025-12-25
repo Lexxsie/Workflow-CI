@@ -1,38 +1,93 @@
-name: MLflow CI Pipeline
+import os
+import mlflow
+import mlflow.sklearn
+import pandas as pd
+import gdown
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 
-jobs:
-  mlflow-ci:
-    runs-on: ubuntu-latest
+# =====================================================
+# CONFIG
+# =====================================================
+EXPERIMENT_NAME = "Hotel_Booking_Basic_Model"
+DATA_DIR = "data"
+DATA_PATH = os.path.join(DATA_DIR, "hotel_train.csv")
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+GDRIVE_FILE_ID = "1mFiv2KO_NQKSNcGfHilTfgkNk1Q72aDu"
+GDRIVE_URL = f"https://drive.google.com/uc?id={GDRIVE_FILE_ID}"
 
-      - name: Set up Python 3.12.7
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12.7"
+# =====================================================
+# HARD RESET MLFLOW CONTEXT (INI KUNCI)
+# =====================================================
+def reset_mlflow_context():
+    # 🔥 MATIKAN SEMUA RUN NYANGKUT
+    try:
+        mlflow.end_run()
+    except Exception:
+        pass
 
-      - name: Check environment
-        run: |
-          python --version
-          pip --version
+    # 🔥 HAPUS ENV VAR YANG BIKIN MLflow RESUME RUN HANTU
+    for k in list(os.environ.keys()):
+        if k.startswith("MLFLOW_"):
+            os.environ.pop(k, None)
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install mlflow pandas scikit-learn gdown
+    # 🔥 TRACKING LOKAL CI
+    mlflow.set_tracking_uri("file:///tmp/mlruns")
 
-      - name: Run MLflow Project (CI-safe)
-        run: |
-          mlflow run MLProject --env-manager=local
+# =====================================================
+# DATA
+# =====================================================
+def download_dataset():
+    os.makedirs(DATA_DIR, exist_ok=True)
 
-      - name: List MLflow runs
-        run: |
-          ls -R mlruns || echo "mlruns not found"
+    if not os.path.exists(DATA_PATH):
+        print("Downloading dataset from Google Drive...")
+        gdown.download(GDRIVE_URL, DATA_PATH, quiet=False)
+        print("Dataset downloaded successfully")
+    else:
+        print("Dataset already exists")
+
+def load_data():
+    df = pd.read_csv(DATA_PATH)
+    X = df.drop("is_canceled", axis=1)
+    y = df["is_canceled"]
+    return train_test_split(X, y, test_size=0.2, random_state=42)
+
+# =====================================================
+# TRAIN
+# =====================================================
+def train():
+    reset_mlflow_context()
+
+    mlflow.set_experiment(EXPERIMENT_NAME)
+
+    X_train, X_test, y_train, y_test = load_data()
+
+    model = RandomForestClassifier(
+        n_estimators=100,
+        random_state=42,
+        n_jobs=-1
+    )
+
+    # 🔥 PASTI RUN BARU
+    with mlflow.start_run(run_name="ci-training", nested=False):
+        model.fit(X_train, y_train)
+
+        preds = model.predict(X_test)
+        acc = accuracy_score(y_test, preds)
+
+        mlflow.log_param("n_estimators", 100)
+        mlflow.log_metric("accuracy", acc)
+
+        mlflow.sklearn.log_model(model, "model")
+
+        print(f"Training done | accuracy={acc:.4f}")
+
+# =====================================================
+# MAIN
+# =====================================================
+if __name__ == "__main__":
+    download_dataset()
+    train()
