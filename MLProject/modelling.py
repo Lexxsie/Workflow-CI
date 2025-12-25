@@ -10,7 +10,8 @@ from sklearn.metrics import accuracy_score
 # =====================================================
 # CONFIG
 # =====================================================
-EXPERIMENT_NAME = "Hotel_Booking_Basic_Model"
+# Ambil experiment name dari environment variable atau default
+EXPERIMENT_NAME = os.getenv("MLFLOW_EXPERIMENT_NAME", "Hotel_Booking_Basic_Model")
 DATA_DIR = "data"
 DATA_PATH = os.path.join(DATA_DIR, "hotel_train.csv")
 GDRIVE_FILE_ID = "1mFiv2KO_NQKSNcGfHilTfgkNk1Q72aDu"
@@ -41,11 +42,13 @@ def load_data():
     )
 
 # =====================================================
-# TRAINING - MLflow run CLI will handle the run
+# TRAINING
 # =====================================================
 def train():
-    # Set experiment (mlflow run will create the run automatically)
-    mlflow.set_experiment(EXPERIMENT_NAME)
+    print(f"Using experiment: {EXPERIMENT_NAME}")
+    
+    # JANGAN set_experiment lagi karena mlflow run sudah set
+    # mlflow.set_experiment(EXPERIMENT_NAME)  # ← HAPUS INI
     
     print("Loading data...")
     X_train, X_test, y_train, y_test = load_data()
@@ -63,7 +66,6 @@ def train():
     acc = accuracy_score(y_test, preds)
     
     print("Logging to MLflow...")
-    # Log directly - no mlflow.start_run() needed
     mlflow.log_param("model", "RandomForest")
     mlflow.log_param("n_estimators", 100)
     mlflow.log_param("random_state", 42)
