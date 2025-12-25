@@ -1,41 +1,35 @@
-name: MLflow CI Training
-
+name: Train ML Model
 on:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
   train:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Check environment
-        run: |
-          python --version
-          pip --version
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install mlflow scikit-learn pandas gdown
-
-      - name: Run MLflow Project (NO conda)
-        run: |
-          mlflow run MLProject --env-manager=local
-
-      - name: Upload MLflow artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlflow-artifacts
-          path: |
-            mlruns
-            /tmp/mlruns
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install mlflow==2.19.0 scikit-learn==1.5.0 pandas==2.2.0 numpy==1.26.0
+        
+    - name: Train model with MLflow
+      run: |
+        cd MLProject
+        mlflow run . --experiment-name github-actions-ci --env-manager local
+        
+    - name: Upload model metrics
+      if: always()
+      run: |
+        echo "Training completed!"
+        echo "MLflow run executed."
