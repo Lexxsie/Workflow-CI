@@ -1,4 +1,5 @@
 name: Train ML Model
+
 on:
   push:
     branches: [ main ]
@@ -11,26 +12,51 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout repository
+    - name: Set up job
       uses: actions/checkout@v4
       
-    - name: Set up Python
+    - name: Run actions/checkout@v3
+      uses: actions/checkout@v3
+      
+    - name: Set up Python 3.12.7
       uses: actions/setup-python@v5
       with:
         python-version: '3.12.7'
         
+    - name: Check Env
+      run: |
+        python --version
+        pip --version
+        echo "Working directory: $(pwd)"
+        ls -la
+        
     - name: Install dependencies
       run: |
         pip install mlflow==2.19.0 scikit-learn==1.5.0 pandas==2.2.0 numpy==1.26.0 gdown
+        pip list
         
-    - name: Train model with MLflow
+    - name: Run mlflow project
       run: |
+        mkdir -p mlruns
+        export MLFLOW_TRACKING_URI=file://$(pwd)/mlruns
         cd MLProject
         mlflow run . --experiment-name github-actions-ci --env-manager local
-
         
-    - name: Upload model metrics
+    - name: Get latest MLflow run id
       if: always()
       run: |
-        echo "Training completed!"
-        echo "MLflow run executed."
+        echo "Checking MLflow runs..."
+        if [ -d "mlruns" ]; then
+          echo "✅ MLflow tracking data found"
+          find mlruns -type f -name "meta.yaml" | head -5
+        else
+          echo "❌ No MLflow tracking data"
+        fi
+        
+    - name: Upload MLflow artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-runs
+        path: mlruns/
+        retention-days: 30
