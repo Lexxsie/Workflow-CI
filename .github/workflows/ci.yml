@@ -27,6 +27,7 @@ jobs:
       run: |
         cd MLProject
         mlflow run . --experiment-name github-actions-ci --env-manager local
+
         
     - name: Upload model metrics
       if: always()
