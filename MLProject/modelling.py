@@ -12,6 +12,7 @@ from sklearn.metrics import accuracy_score
 # CONFIG
 # =====================================================
 EXPERIMENT_NAME = "Hotel_Booking_Basic_Model"
+
 DATA_DIR = "data"
 DATA_PATH = os.path.join(DATA_DIR, "hotel_train.csv")
 
@@ -40,17 +41,17 @@ def load_data():
     X = df.drop("is_canceled", axis=1)
     y = df["is_canceled"]
 
-    return train_test_split(X, y, test_size=0.2, random_state=42)
+    return train_test_split(
+        X, y,
+        test_size=0.2,
+        random_state=42
+    )
 
 # =====================================================
-# TRAINING
+# TRAINING (MLFLOW PROJECT SAFE)
 # =====================================================
 def train():
-    # 🔴 WAJIB: pastikan tidak ada run nyangkut
-    mlflow.end_run()
-
-    # 🔴 WAJIB di CI
-    mlflow.set_tracking_uri("file:///tmp/mlruns")
+    # ⚠️ BIARKAN MLflow Project yang mengelola run
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     X_train, X_test, y_train, y_test = load_data()
@@ -61,23 +62,22 @@ def train():
         n_jobs=-1
     )
 
-    # 🔴 start_run TANPA run_id
-    with mlflow.start_run():
-        model.fit(X_train, y_train)
+    model.fit(X_train, y_train)
 
-        preds = model.predict(X_test)
-        acc = accuracy_score(y_test, preds)
+    preds = model.predict(X_test)
+    acc = accuracy_score(y_test, preds)
 
-        mlflow.log_param("n_estimators", 100)
-        mlflow.log_metric("accuracy", acc)
+    # 🔥 MANUAL LOGGING (CI-SAFE)
+    mlflow.log_param("model", "RandomForest")
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_metric("accuracy", acc)
 
-        mlflow.sklearn.log_model(
-            model,
-            artifact_path="model",
-            registered_model_name=None
-        )
+    mlflow.sklearn.log_model(
+        model,
+        artifact_path="model"
+    )
 
-        print(f"Training finished | Accuracy = {acc:.4f}")
+    print(f"Training finished | Accuracy = {acc:.4f}")
 
 # =====================================================
 # MAIN
